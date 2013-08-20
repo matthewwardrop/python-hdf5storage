@@ -137,7 +137,7 @@ class Storage(HDF5Group,DataGroup):
 	
 	@property
 	def groups(self):
-		return list(child for child in self.__children if isinstance(child,DataGroup) )
+		return list(child for child in self.__children if isinstance(self.__children[child],DataGroup) )
 	
 	def leaf(self,node="/",data=None,dtype=None,attrs={},make_parents=True):
 		if isinstance(node,str):
@@ -158,7 +158,7 @@ class Storage(HDF5Group,DataGroup):
 	
 	@property
 	def leaves(self):
-		return list(child for child in self.__children if isinstance(child,DataLeaf) )
+		return list(child for child in self.__children if isinstance(self.__children[child],DataLeaf) )
 	
 	def node_attrs(self,node="/",attrs=None):
 		parent_node = node.split('/')[:-1]
@@ -217,9 +217,19 @@ class Storage(HDF5Group,DataGroup):
 	#
 	# Save the data
 	def __rshift__(self,location):
-		h5file = tables.openFile(location, mode = "w", title = self.__name)
-		self._hdf5_write(h5file,h5file.root);
-		h5file.close()
+		if location.endswith('.mat'):
+			name = location[:-4]
+			md = {}
+			for leaf in self.leaves:
+				md[leaf] = self[leaf]
+			import scipy.io as spio
+			spio.savemat("%s.%s.mat"%(name,self._hdf5_name),md)
+			for group in self.groups:
+				self.group(group).__rshift__("%s.%s.mat"%(name,self._hdf5_name))
+		else:
+			h5file = tables.openFile(location, mode = "w", title = self._hdf5_name)
+			self._hdf5_write(h5file,h5file.root);
+			h5file.close()
 	
 	#
 	# Restore the data

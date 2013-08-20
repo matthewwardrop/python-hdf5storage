@@ -48,6 +48,16 @@ class TestUnitNewCreation(unittest.TestCase):
 		self.d >> 'output.hdf5'
 		d2 = self.d._load('output.hdf5')
 		self.assertEqual(d2['test'],[1,2,3])
+	
+	##### Test Matlab ######################################################
+	def test_repr(self):
+		self.d.set_attrs(auto_nodes=True)
+		self.d['blast'] = "tet"
+		self.d.x['cat'] = 1
+		self.d.y['dog'] = 2
+		self.d.x.z['asd'] = 1
+		
+		self.d >> "test.mat"
 
 if __name__ == '__main__':
     unittest.main()
