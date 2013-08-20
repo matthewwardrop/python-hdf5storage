@@ -14,17 +14,17 @@ def encodeNumbers(name):
 def decodeNumbers(name):
 	if isinstance(name,(int,long,float,complex)):
 		return name
-	m = re.match("^([a-zA-Z]+)\(([\w\(\)\+\-]*\))$",name)
+	m = re.match("^([a-zA-Z]+)\(([\w\(\)\+\-\.]*)\)$",name)
 	if m is None:
 		return name
 	numtype,numstr = m.groups()
-	if numtype is 'long':
+	if numtype == 'long':
 		return long(numstr)
-	elif numtype is 'int':
+	elif numtype == 'int':
 		return int(numstr)
-	elif numtype is 'float':
+	elif numtype == 'float':
 		return float(numstr)
-	elif numtype is 'complex':
+	elif numtype == 'complex':
 		return complex(numstr)
 	raise ValueError("'%s' of type %s is not recognised."%(name,type(name)))
 	

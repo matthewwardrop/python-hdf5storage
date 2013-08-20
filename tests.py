@@ -37,6 +37,10 @@ class TestUnitNewCreation(unittest.TestCase):
 		self.assertEquals(set(self.d),set(['x',2.5,2.124]))
 		self.assertEquals(len(self.d),3)
 		self.d>>'test.hdf5'
+		
+		d = Storage._load('test.hdf5')
+		self.assertEquals(set(d),set(['x',2.5,2.124]))
+		self.assertEquals(len(d),3)
 	
 	##### TEST DATA TYPES ##################################################
 	def test_dict(self):
