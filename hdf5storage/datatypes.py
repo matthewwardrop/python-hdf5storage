@@ -93,7 +93,7 @@ class DataDict(HDF5LeafTable,DataLeaf):
 	
 	############## HDF5 Methods ############################################
 	@property
-	def _hdf5_name(self):
+	def _hdf5_name_internal(self):
 		return self.__name
 	
 	@property
@@ -166,7 +166,7 @@ class DataList(HDF5Group,DataLeaf):
 	
 	######### HDF5 Methods #################################################
 	@property
-	def _hdf5_name(self):
+	def _hdf5_name_internal(self):
 		return self.__name
 	
 	@property
@@ -236,7 +236,7 @@ class DataArray(HDF5LeafArray,DataLeaf):
 	######### HDF5 Methods #################################################
 	
 	@property
-	def _hdf5_name(self):
+	def _hdf5_name_internal(self):
 		return self.__name
 	
 	@property

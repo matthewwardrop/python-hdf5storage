@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
+from utility import encodeNumbers
 ###################### FOUNDATIONAL HDF5 CLASSES ###############################
 
 class DataNode(object):
@@ -52,8 +53,12 @@ class HDF5Node(object):
 	
 	#
 	# Returns the name to be used for this object's node
-	@abstractproperty
+	@property
 	def _hdf5_name(self):
+		return encodeNumbers(self._hdf5_name_internal)
+	
+	@abstractproperty
+	def _hdf5_name_internal(self):
 		raise NotImplementedError
 	
 	#

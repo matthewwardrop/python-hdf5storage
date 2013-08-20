@@ -30,11 +30,13 @@ class TestUnitNewCreation(unittest.TestCase):
 		self.d.set_attrs(cat='cat')
 		self.assertEquals(self.d.attrs['cat'],'cat')
 	
-	def test_dict(self):
+	def test_dict_like(self):
 		self.d['x'] = 1
-		self.d['u'] = 2
-		self.assertEquals(set(self.d),set(['x','u']))
-		self.assertEquals(len(self.d),2)
+		self.d[2.5] = 2
+		self.d[2.124] = 2
+		self.assertEquals(set(self.d),set(['x',2.5,2.124]))
+		self.assertEquals(len(self.d),3)
+		self.d>>'test.hdf5'
 	
 	##### TEST DATA TYPES ##################################################
 	def test_dict(self):

@@ -1,8 +1,15 @@
+import re
 import tables
+
+import warnings
+warnings.filterwarnings('ignore',category=tables.NaturalNameWarning)
+
 import numpy as np
 
 from .interfaces import DataNode,DataGroup,DataLeaf,HDF5Node,HDF5Group,HDF5Leaf,HDF5LeafTable,HDF5LeafArray
 from . import errors
+
+from utility import decodeNumbers
 
 #################### The Main DATA CLASS #######################################
 #
@@ -98,9 +105,17 @@ class Storage(HDF5Group,DataGroup):
 			if name is None or name == '':
 				self.__children.update(copy.deepcopy(data._children)) 
 				return
-
-		if name is None or name.startswith('_') or len(name) == 0:
-			raise errors.InvalidNodeNameError("Node names must be a string with length > 0 and that start with a letter. '%s' was provided."%name)
+		
+		name = decodeNumbers(name)
+		
+		if isinstance(name,str):
+			if name is None or not re.match("^[a-zA-Z][a-zA-Z\_]*$",name):
+				raise errors.InvalidNodeNameError("Node names must be a string with length > 0 and that start with a letter. '%s' was provided."%name)
+		elif isinstance(name,(int,float,long,complex)):
+			pass
+		else:
+			raise errors.InvalidNodeNameError("'%s'"%name)
+			
 		
 		# TODO: Consider whether objects should be able to handle adding their own data
 		#if self.__children.has_key(name) and getattr(self.__children.get(name),'_addData',None) is not None:
@@ -198,7 +213,7 @@ class Storage(HDF5Group,DataGroup):
 	#
 	# Get the children of this root node.
 	@property
-	def _hdf5_name(self):
+	def _hdf5_name_internal(self):
 		return self.__name
 	
 	@property
