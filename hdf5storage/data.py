@@ -39,15 +39,6 @@ class Storage(HDF5Group,DataGroup):
 	######### USER FACING METHODS ##########################################
 	
 	# Short hand methods
-	def __getitem__(self,key):
-		value = self.__get_leaf(key)
-		if isinstance(value,DataLeaf):
-			return value.value
-		return value
-	
-	def __setitem__(self,key,value):
-		self.__add_leaf(name=key,data=value,dtype=None)
-	
 	def __getattr__(self,name):
 		return self.group(name)
 	
@@ -77,6 +68,23 @@ class Storage(HDF5Group,DataGroup):
 	
 	def __dir__(self):
 		return dir(type(self)) + list(self.__children.keys())
+	
+	######### DICTIONARY IMITATION #########################################
+	def __iter__(self):
+		for x in self.leaves:
+			yield x
+	
+	def __getitem__(self,key):
+		value = self.__get_leaf(key)
+		if isinstance(value,DataLeaf):
+			return value.value
+		return value
+	
+	def __setitem__(self,key,value):
+		self.__add_leaf(name=key,data=value,dtype=None)
+	
+	def __len__(self):
+		return len(self.leaves)
 	
 	######### PRIVATE METHODS ##############################################
 	

@@ -30,6 +30,12 @@ class TestUnitNewCreation(unittest.TestCase):
 		self.d.set_attrs(cat='cat')
 		self.assertEquals(self.d.attrs['cat'],'cat')
 	
+	def test_dict(self):
+		self.d['x'] = 1
+		self.d['u'] = 2
+		self.assertEquals(set(self.d),set(['x','u']))
+		self.assertEquals(len(self.d),2)
+	
 	##### TEST DATA TYPES ##################################################
 	def test_dict(self):
 		self.d['test'] = {'dog': 3.2, 2.3: 1.5}
