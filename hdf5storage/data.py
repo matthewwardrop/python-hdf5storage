@@ -95,7 +95,10 @@ class Storage(HDF5Group,DataGroup):
 	######### USER FACING METHODS ##########################################
 	
 	# String representation
-	def __repr__(self,depth=0):
+	def __repr__(self):
+		return "<Storage with %d groups and %d leaves>" % (len(self.groups),len(self.leaves))
+
+	def structure(self,depth=0):
 		nl = "|"
 		output = []
 		if depth == 0:
@@ -103,9 +106,9 @@ class Storage(HDF5Group,DataGroup):
 		leaves = []
 		nodes = []
 		for node,value in self.__children.items():
-			if isinstance(value,HDF5Group):
+			if isinstance(value,Storage):
 				nodes.append("+%s"%value.name)
-				nodes.extend(map(lambda x: "%s%s"%(nl,x),value.__repr__(depth=depth+1)))
+				nodes.extend(map(lambda x: "%s%s"%(nl,x),value.print_structure(depth=depth+1)))
 			else:
 				leaves.append('-'+node)
 				

@@ -144,6 +144,9 @@ class DataNode(object):
 	
 	def keys(self):
 		return self.leaves
+	
+	def values(self):
+		return list( self[x] for x in self.leaves )
 
 	def items(self):
 		return list( (x,self[x]) for x in self.leaves )
