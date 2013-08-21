@@ -108,7 +108,7 @@ class Storage(HDF5Group,DataGroup):
 		for node,value in self.__children.items():
 			if isinstance(value,Storage):
 				nodes.append("+%s"%value.name)
-				nodes.extend(map(lambda x: "%s%s"%(nl,x),value.print_structure(depth=depth+1)))
+				nodes.extend(map(lambda x: "%s%s"%(nl,x),value.structure(depth=depth+1)))
 			else:
 				leaves.append('-'+node)
 				
