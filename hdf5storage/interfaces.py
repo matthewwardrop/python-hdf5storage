@@ -20,6 +20,8 @@ class DataNode(object):
 			nodes = node.split('/')
 		elif isinstance(node,(list,tuple)):
 			nodes = list(node)
+		elif isinstance(node,(int,long,complex,float)):
+			nodes = [node]
 		else:
 			raise errors.InvalidNodeError("'%s' is not a valid node identifier." % node)
 		
@@ -140,6 +142,9 @@ class DataNode(object):
 			return self._pop_node(key)
 		raise errors.NoSuchLeafError("'%s'"%key)
 	
+	def keys(self):
+		return self.leaves
+
 	def items(self):
 		return list( (x,self[x]) for x in self.leaves )
 

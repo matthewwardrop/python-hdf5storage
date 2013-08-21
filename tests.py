@@ -30,12 +30,18 @@ class TestUnitNewCreation(unittest.TestCase):
 		self.d['x'] = 1
 		self.d[2.5] = 2
 		self.d[2.124] = 2
-		self.assertEquals(set(self.d),set(['x',2.5,2.124]))
-		self.assertEquals(len(self.d),3)
+		self.d[80.0127665245] = 3
+		self.assertEquals(self.d[80.0127665245],3)
+		self.assertEquals(set(self.d),set(['x',2.5,2.124,80.0127665245]))
+		self.assertEquals(len(self.d),4)
 		self.d>>'test.hdf5'
 		
 		d = Storage._load('test.hdf5')
-		self.assertEquals(set(d),set(['x',2.5,2.124]))
+		self.assertEquals(set(d),set(['x',2.5,2.124,80.0127665245]))
+		self.assertEquals(len(d),4)
+		
+		d.pop('x')
+		self.assertEquals(set(d),set([2.5,2.124,80.0127665245]))
 		self.assertEquals(len(d),3)
 
 	##### TEST ATTRIBUTES ##################################################

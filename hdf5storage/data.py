@@ -159,6 +159,9 @@ class Storage(HDF5Group,DataGroup):
 				if name in dir(type(self)):
 					warnings.warn(errors.InaccessibleGroupNodeWarning("The name chosen for the group node '%s' will not be accessible as an attribute, because it clashes with the name of a method."%name))
 
+	def _pop_node(self,node):
+		return self.__children.pop(node)
+
 	@property
 	def attrs(self):
 		return self.__attributes
