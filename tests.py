@@ -12,7 +12,7 @@ class TestUnitNewCreation(unittest.TestCase):
 		self.d['dog'] = 'test'
 	
 	def test_node_create(self):
-		self.d.group('x',True)['cat'] = 0
+		self.d.node('x',True)['cat'] = 0
 	
 	def test_repr(self):
 		self.d.set_attrs(auto_nodes=True)
@@ -26,10 +26,6 @@ class TestUnitNewCreation(unittest.TestCase):
 		d = Storage('Test',attrs={'auto_nodes':True})
 		self.assertEquals( isinstance(d.x.y.u.asdasdasd,Storage), True)
 	
-	def test_attr(self):
-		self.d.set_attrs(cat='cat')
-		self.assertEquals(self.d.attrs['cat'],'cat')
-	
 	def test_dict_like(self):
 		self.d['x'] = 1
 		self.d[2.5] = 2
@@ -41,6 +37,19 @@ class TestUnitNewCreation(unittest.TestCase):
 		d = Storage._load('test.hdf5')
 		self.assertEquals(set(d),set(['x',2.5,2.124]))
 		self.assertEquals(len(d),3)
+
+	##### TEST ATTRIBUTES ##################################################
+	def test_attr(self):
+		self.d.set_attrs(cat='cat')
+		self.assertEquals(self.d.attrs['cat'],'cat')
+		self.d.set_attrs(auto_nodes=True)
+		self.d.x['dim'] = [np.array([1,2,3]),np.array([1,23,4])]
+		self.d.node_attrs('x/dim/0',{'test':1})
+		self.assertEquals(self.d.node_attrs('x/dim/0'),{'test':1})
+
+		self.d >> 'output.hdf5'
+		d2 = self.d._load('output.hdf5')
+		self.assertEquals(d2.node_attrs('x/dim/0'),{'test':1})
 	
 	##### TEST DATA TYPES ##################################################
 	def test_dict(self):
@@ -70,6 +79,10 @@ class TestUnitNewCreation(unittest.TestCase):
 		self.d.x.z['asd'] = 1
 		
 		self.d >> "test.mat"
+
+	def test_warnings(self):
+		self.d.set_attrs(auto_nodes=True)
+		self.d.node('nodes',create=True)['test'] = 1
 
 if __name__ == '__main__':
     unittest.main()

@@ -19,7 +19,14 @@ class Storage(HDF5Group,DataGroup):
 	Storage (name="",attrs={})
 	
 	The storage object that acts somewhat like a dictionary, and that can be
-	output to disk as an HDF5 formatted data set.
+	output to disk as an HDF5 formatted data set (or as a series of matlab
+	files). The Storage library is designed mostly for numeric data; though
+	rudimentary support for strings exists also. Do not expect more complicated
+	objects to work.
+
+	In particular, the storage library is designed to work with any number 
+	format with which numpy is familiar. The internal storage format used by
+	pytables also uses numpy.
 	
 	Parameters
 	----------
@@ -28,38 +35,76 @@ class Storage(HDF5Group,DataGroup):
 	
 	Explanation
 	-----------
-	
+	The Storage class inherits from HDF5Group and DataGroup. The HDF5Group class
+	only defines internal methods and properties that are used to output the
+	Data* objects to HDF5 format using pytables. These methods are prepended 
+	with '_hdf5'. The DataGroup class defines the methods with which the user is
+	most likely to be interested.
+
+	The DataGroup class implements data structure methods which allows it to act
+	much like the standard python dictionary object. i.e.
+	>>> d = Storage()
+	>>> d['test'] = 2.5
+
+	pytables does not support keys being numeric; however HDF5Storage will allow
+	you to set a numeric key. This means that numeric keys are transmitted as 
+	strings to pytables. This is done in a lossless way; and when the HDF5 files
+	are reloaded into HDF5Storage objects, they are converted back to numeric 
+	keys. If you open the HDF5 files in external HDF5 viewers, a float key of
+	`1.2e8` will be transformed to 'float(1.2e8)'; and so on. Thus:
+	>>> d[2.5] = 3.6
+	Works fine.
+
+	HDF5Storage also supports the hierarchical nature of HDF5. This is accessed 
+	by the node notation (or, where node names do not conflict with methods,
+	by the attribute notation).
+	>>> d.x # (This will return the DataGroup node at x)
+	If x is not subnode of d which is also a DataGroup; this will result in an
+	AttributeError being raised. Nodes can be automatically created by setting 
+	an attribute with key 'auto_nodes' on the DataGroup objects.
+
+	A summary of the methods and behaviour of Storage objects is presented below
+	under "Examples".
+
 	Examples
 	--------
+
+	Equivalent:
+	d['test'] = 1
+	d.node('test').value
+	d.leaf('test').value
+
+	d.x
+	d.node('x')
+	d.group('x')
+
+	d.x.y.set_attrs(test=1,auto_nodes=True)
+	d.node_attrs("x/y",attrs={'auto_nodes':True})
+
+	d.x.y.node('test').set_attrs(auto=True)
+	d.x.y.leaf('test').set_attrs(auto=True)
+	d.node_attrs('x/y/test',attrs={'auto':True})
 	'''
 	
 	def __init__(self,name="",attrs={}):
-		self.__name = name
+		self.set_name(name)
 		self.__children = {}
-		self.__attributes = {'type':'data'}
+		self.__attributes = {'type':'storage'}
 		self.set_attrs(**attrs)
 	
-	@property
-	def __auto_nodes(self):
-		return self.attrs.get('auto_nodes',False)
-	
 	######### USER FACING METHODS ##########################################
-	
-	# Short hand methods
-	def __getattr__(self,name):
-		return self.group(name)
 	
 	# String representation
 	def __repr__(self,depth=0):
 		nl = "|"
 		output = []
 		if depth == 0:
-			output = ["Storage:%s"%self.__name]
+			output = ["Storage:%s"%self.name]
 		leaves = []
 		nodes = []
 		for node,value in self.__children.items():
 			if isinstance(value,HDF5Group):
-				nodes.append("+%s"%value.__name)
+				nodes.append("+%s"%value.name)
 				nodes.extend(map(lambda x: "%s%s"%(nl,x),value.__repr__(depth=depth+1)))
 			else:
 				leaves.append('-'+node)
@@ -74,33 +119,27 @@ class Storage(HDF5Group,DataGroup):
 		return "\n|".join(output)
 	
 	def __dir__(self):
-		return dir(type(self)) + list(self.__children.keys())
+		return dir(type(self)) + list(self.groups)
 	
-	######### DICTIONARY IMITATION #########################################
-	def __iter__(self):
-		for x in self.leaves:
-			yield x
+	######################### DataGroup Methods ############################
 	
-	def __getitem__(self,key):
-		value = self.__get_leaf(key)
-		if isinstance(value,DataLeaf):
-			return value.value
-		return value
+	# More powerful methods
+	def _node(self,node=None):
+		if node in self.__children:
+			return self.__children[node]
+		raise errors.NoSuchNodeError("Storage object '%s' does not have node '%s'" % (self.name,node))
 	
-	def __setitem__(self,key,value):
-		self.__add_leaf(name=key,data=value,dtype=None)
+	@property
+	def nodes(self):
+		return list(self.__children.keys())
 	
-	def __len__(self):
-		return len(self.leaves)
+	def _group_generate(self,node):
+		attrs = {}
+		if 'auto_nodes' in self.attrs:
+			attrs['auto_nodes'] = self.attrs['auto_nodes']
+		return Storage(name=node,attrs=attrs)
 	
-	######### PRIVATE METHODS ##############################################
-	
-	def __get_leaf(self,name):
-		if name in self.__children and isinstance(self.__children[name],DataLeaf):
-			return self.__children[name]
-		raise errors.NoSuchLeafError("'%s'"%name)
-	
-	def __add_leaf(self,name,data=None,dtype=None,attrs={}):
+	def _add_node(self,name,data=None,dtype=None,attrs={}):
 		if isinstance(data,Storage): # Merge data type if name is none
 			if name is None or name == '':
 				self.__children.update(copy.deepcopy(data._children)) 
@@ -114,92 +153,12 @@ class Storage(HDF5Group,DataGroup):
 			pass
 		else:
 			raise errors.InvalidNodeNameError("'%s'"%name)
-			
-		
-		# TODO: Consider whether objects should be able to handle adding their own data
-		#if self.__children.has_key(name) and getattr(self.__children.get(name),'_addData',None) is not None:
-		#	if (self.__children.get(name)._addData(data=data,dtype=dtype)):
-		#		return
+
 		self.__children[name] = getDataType(name=name,data=data,dtype=dtype,attrs=attrs)
-	
-	######################### DataGroup Methods ############################
-	
-	# More powerful methods
-	def group(self,node="",create=None,attrs={}):
-		
-		# If node is not the root level node for this data object, recurse down tree
-		if isinstance(node,str):
-			nodes = node.split('/')
-		elif isinstance(node,(list,tuple)):
-			nodes = list(node)
-		else:
-			raise errors.InvalidNodeError("'%s' is not a valid node identifier." % node)
-		
-		# Remove empty node strings
-		while len(nodes) > 0 and nodes[0] == "":
-			nodes.pop(0)
-		
-		# Resolve data node
-		if len(nodes) == 0:
-			return self
-		else:
-			if nodes[0] in self.__children:
-				if isinstance(self.__children[nodes[0]],DataGroup):
-					return self.__children[nodes[0]].group(nodes[1:],create=create)
-				else:
-					raise errors.NoSuchGroupError("While a child of name '%s' does exist; it is a leaf node. Use `Storage['%s']` to extract the value of this child node." % (name,name))
-			else:
-				if create if create is not None else self.__auto_nodes:
-					if 'auto_nodes' in self.attrs and 'auto_nodes' not in attrs:
-						attrs['auto_nodes'] = self.attrs['auto_nodes']
-					self.__children[nodes[0]] = Storage(name=nodes[0],attrs=attrs)
-					return self.__children[nodes[0]].group(nodes[1:],create=create)
-		
-		raise errors.NoSuchGroupError("'%s'" % node)
-	
-	@property
-	def groups(self):
-		return list(child for child in self.__children if isinstance(self.__children[child],DataGroup) )
-	
-	def leaf(self,node="/",data=None,dtype=None,attrs={},make_parents=True):
-		if isinstance(node,str):
-			nodes = node.split('/')
-		parent_node = nodes[:-1]
-		node = nodes[-1:][0]
-		
-		group = self.group(parent_node,create=make_parents)
-		
-		if group is self:
-		
-			if data is not None:
-				return self.__add_leaf(node,data=data,dtype=dtype,attrs=attrs)
-			else:
-				return self.__get_leaf(node)
-		
-		return group.leaf(node,attrs=attrs,dtype=dtype,data=data)
-	
-	@property
-	def leaves(self):
-		return list(child for child in self.__children if isinstance(self.__children[child],DataLeaf) )
-	
-	def node_attrs(self,node="/",attrs=None):
-		parent_node = node.split('/')[:-1]
-		name = node.split('/')[-1:]
-		
-		group = self.group(parent_node,create=False)
-		
-		if group is self:
-			if name in self.__children:
-				nodeObj = self.__children[name]
-				if isinstance(nodeObj,DataNode):
-					if attrs is None:
-						return nodeObj.attrs
-					else:
-						return nodeObj.set_attrs(**attrs)
-				raise InvalidNodeError("'%s' is not a DataNode object." % name)
-			raise InvalidNodeError("'%s'" % name)
-		return group.node_attrs(name,attrs=attrs)
-	
+		if isinstance(self.__children[name],DataGroup):
+				if name in dir(type(self)):
+					warnings.warn(errors.InaccessibleGroupNodeWarning("The name chosen for the group node '%s' will not be accessible as an attribute, because it clashes with the name of a method."%name))
+
 	@property
 	def attrs(self):
 		return self.__attributes
@@ -211,9 +170,6 @@ class Storage(HDF5Group,DataGroup):
 	######################### HDF5 Methods #####################################
 	#
 	# Get the children of this root node.
-	@property
-	def _hdf5_name_internal(self):
-		return self.__name
 	
 	@property
 	def _hdf5_group_children(self):
@@ -247,7 +203,7 @@ class Storage(HDF5Group,DataGroup):
 			import scipy.io as spio
 			spio.savemat("%s.%s.mat"%(name,self._hdf5_name),md)
 			for group in self.groups:
-				self.group(group).__rshift__("%s.%s.mat"%(name,self._hdf5_name))
+				self.node(group).__rshift__("%s.%s.mat"%(name,self._hdf5_name))
 		else:
 			h5file = tables.openFile(location, mode = "w", title = self._hdf5_name)
 			self._hdf5_write(h5file,h5file.root);

@@ -10,6 +10,11 @@ from .data import Storage
 #
 # Get the appropriate data type for the input data
 def getDataType(name,data=None,dtype=None,attrs={}):
+	if isinstance(data,DataNode):
+		data = copy.copy(data)
+		data.set_name = name
+		return data
+	
 	if dtype == 'array' or dtype is None and isinstance(data,np.ndarray):
 		return DataArray(name,data,attrs=attrs)
 	if dtype == 'storage' or dtype is None and isinstance(data,Storage):
@@ -55,7 +60,7 @@ def populateDataType(dataObj,hdfNode,extractOnly = False,prefix=''):
 	
 	if type == 'storage':
 		obj = Storage
-		dtype = 'data'
+		dtype = 'storage'
 	elif type == 'data_dict':
 		obj = DataDict
 		dtype = 'dict'
@@ -79,7 +84,7 @@ def populateDataType(dataObj,hdfNode,extractOnly = False,prefix=''):
 	if extractOnly:
 		return extracted
 	
-	dataObj.leaf(node=os.path.join(node,name),data=extracted['data'],dtype=dtype,attrs=extracted['args'])
+	dataObj.add_node(name=name,parent=node,data=extracted['data'],dtype=dtype,attrs=extracted['args'])
 	return True
 
 class DataDict(HDF5LeafTable,DataLeaf):
@@ -87,14 +92,11 @@ class DataDict(HDF5LeafTable,DataLeaf):
 	KEY_LENGTH = 30
 	
 	def __init__(self,name,data,attrs={}):
-		self.__name = name
+		self.set_name(name)
 		self.__dict = data
 		self.__props = attrs
 	
 	############## HDF5 Methods ############################################
-	@property
-	def _hdf5_name_internal(self):
-		return self.__name
 	
 	@property
 	def _hdf5_desc(self):
@@ -160,14 +162,16 @@ class DataDict(HDF5LeafTable,DataLeaf):
 class DataList(HDF5Group,DataLeaf):
 	
 	def __init__(self,name,data,attrs={}):
-		self.__name = name
+		self.set_name(name)
 		self.set_value(data)
 		self.__props = attrs
 	
 	######### HDF5 Methods #################################################
-	@property
-	def _hdf5_name_internal(self):
-		return self.__name
+	
+	def _node(self,node):
+		if node.isdigit():
+			return self.__list[int(node)]
+		raise errors.NoSuchNodeError("'%s'"%node)
 	
 	@property
 	def _hdf5_desc(self):
@@ -229,15 +233,11 @@ class DataList(HDF5Group,DataLeaf):
 class DataArray(HDF5LeafArray,DataLeaf):
 	
 	def __init__(self,name,data=None,attrs={}):
-		self.__name = name
+		self.set_name(name)
 		self.__data = np.array(data)
 		self.__props = attrs
 	
 	######### HDF5 Methods #################################################
-	
-	@property
-	def _hdf5_name_internal(self):
-		return self.__name
 	
 	@property
 	def _hdf5_desc(self):
