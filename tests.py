@@ -50,12 +50,20 @@ class TestUnitNewCreation(unittest.TestCase):
 		self.assertEquals(self.d.attrs['cat'],'cat')
 		self.d.set_attrs(auto_nodes=True)
 		self.d.x['dim'] = [np.array([1,2,3]),np.array([1,23,4])]
-		self.d.node_attrs('x/dim/0',{'test':1})
+		self.d.node_attrs('x/dim/0',{'test':1,'test2':2})
 		self.assertEquals(self.d.node_attrs('x/dim/0'),{'test':1})
 
 		self.d >> 'output.hdf5'
 		d2 = self.d._load('output.hdf5')
 		self.assertEquals(d2.node_attrs('x/dim/0'),{'test':1})
+	
+	def test_nested_attr(self):
+		self.d['test2'] = [np.array([1])]
+		self.d.node_attrs('test2/0',attrs={'attr':1})
+		
+		self.d >> 'output2.hdf5'
+		d2 = Storage._load('output2.hdf5')
+		self.assertEquals(d2.node_attrs('test2/0'),{'attr':1})
 	
 	##### TEST DATA TYPES ##################################################
 	def test_dict(self):

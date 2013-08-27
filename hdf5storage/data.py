@@ -150,7 +150,7 @@ class Storage(HDF5Group,DataGroup):
 		
 		name = decodeNumbers(name)
 		if isinstance(name,str):
-			if name is None or not re.match("^[a-zA-Z][a-zA-Z\_]*$",name):
+			if name is None or not re.match("^[a-zA-Z][a-zA-Z\_0-9]*$",name):
 				raise errors.InvalidNodeNameError("Node names must be a string with length > 0 and that start with a letter. '%s' was provided."%name)
 		elif isinstance(name,(int,float,long,complex)):
 			pass

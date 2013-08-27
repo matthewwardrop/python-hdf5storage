@@ -195,8 +195,8 @@ class DataList(HDF5Group,DataLeaf):
 		
 		for key,value in hdfNode._v_children.items():
 			extracted = populateDataType(dataObj=None,hdfNode=value,extractOnly=True)
-			if isinstance(object,DataLeaf):
-				extracted['data'].set_attrs(**extracted['args'])
+			#if isinstance(object,DataLeaf):
+			#	extracted['data'].set_attrs(**extracted['args'])
 			found[key] = extracted['data']
 			
 		
